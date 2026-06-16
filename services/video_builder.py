@@ -348,6 +348,10 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
 async def _get_duration(path: str) -> float:
     """Get media file duration using ffprobe."""
+    if not FFPROBE:
+        logger.warning("ffprobe not available, using default duration")
+        return VIDEO_DURATION
+
     cmd = [
         FFPROBE, "-v", "quiet",
         "-print_format", "json",
