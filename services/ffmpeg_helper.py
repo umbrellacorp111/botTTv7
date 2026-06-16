@@ -1,6 +1,8 @@
 import os
+import io
 import shutil
 import logging
+import zipfile
 import urllib.request
 
 logger = logging.getLogger(__name__)
@@ -9,7 +11,7 @@ _ffmpeg_path = None
 _ffprobe_path = None
 FONT_NAME = "DejaVu Sans"
 FONT_FILENAME = "DejaVuSans.ttf"
-FONT_URL = "https://github.com/dejavu-fonts/dejavu-fonts/raw/master/ttf/DejaVuSans.ttf"
+FONT_ZIP_URL = "https://github.com/dejavu-fonts/dejavu-fonts/archive/refs/tags/version_2_37.zip"
 
 
 def get_ffmpeg_path() -> str:
@@ -74,11 +76,20 @@ def ensure_font(font_dir: str) -> str:
 
     os.makedirs(font_dir, exist_ok=True)
     try:
-        logger.info(f"Downloading font from {FONT_URL}...")
-        urllib.request.urlretrieve(FONT_URL, font_path)
-        logger.info(f"Font saved: {font_path}")
+        logger.info(f"Downloading font archive from {FONT_ZIP_URL}...")
+        req = urllib.request.urlopen(FONT_ZIP_URL)
+        data = req.read()
+
+        with zipfile.ZipFile(io.BytesIO(data)) as z:
+            for name in z.namelist():
+                if name.endswith("DejaVuSans.ttf"):
+                    with z.open(name) as src, open(font_path, "wb") as dst:
+                        dst.write(src.read())
+                    logger.info(f"Font saved: {font_path}")
+                    return font_path
+
+        logger.warning("DejaVuSans.ttf not found in downloaded archive")
+        return None
     except Exception as e:
         logger.warning(f"Font download failed, subtitles may be invisible: {e}")
         return None
-
-    return font_path
