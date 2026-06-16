@@ -14,9 +14,13 @@ from config import (
     VIDEO_DURATION, CLIP_DURATION, OPENAI_API_KEY
 )
 from openai import AsyncOpenAI
+from services.ffmpeg_helper import get_ffmpeg_path, get_ffprobe_path
 
 logger = logging.getLogger(__name__)
 client = AsyncOpenAI(api_key=OPENAI_API_KEY)
+
+FFMPEG = get_ffmpeg_path()
+FFPROBE = get_ffprobe_path()
 
 TRANSITIONS = ["fade", "zoom_in", "zoom_out", "slide_left", "slide_right"]
 TRANSITION_DURATION = 0.4  # seconds
@@ -90,7 +94,7 @@ async def _prepare_clips(clips: list[str], user_id: int) -> list[str]:
             )
 
         cmd = [
-            "ffmpeg", "-y",
+            FFMPEG, "-y",
             "-i", clip_path,
             "-t", str(duration),
             "-vf", vf,
@@ -124,7 +128,7 @@ async def _prepare_clips(clips: list[str], user_id: int) -> list[str]:
 async def _simple_resize(clip_path: str, out_path: str, duration: float, user_id: int, idx: int) -> str:
     """Simple resize without zoom for fallback."""
     cmd = [
-        "ffmpeg", "-y",
+        FFMPEG, "-y",
         "-i", clip_path,
         "-t", str(duration),
         "-vf", f"scale={VIDEO_WIDTH}:{VIDEO_HEIGHT}:force_original_aspect_ratio=increase,crop={VIDEO_WIDTH}:{VIDEO_HEIGHT}",
@@ -147,7 +151,7 @@ async def _concat_with_transitions(clips: list[str], user_id: int, target_durati
     if len(clips) == 1:
         # Loop single clip if needed
         cmd = [
-            "ffmpeg", "-y",
+            FFMPEG, "-y",
             "-stream_loop", "-1",
             "-i", clips[0],
             "-t", str(target_duration),
@@ -182,7 +186,7 @@ async def _concat_with_transitions(clips: list[str], user_id: int, target_durati
     filter_graph = ";".join(filter_parts)
 
     cmd = [
-        "ffmpeg", "-y",
+        FFMPEG, "-y",
         *inputs,
         "-filter_complex", filter_graph,
         "-map", "[outv]",
@@ -212,7 +216,7 @@ async def _simple_concat(clips: list[str], out_path: str, target_duration: float
             f.write(f"file '{clip}'\n")
 
     cmd = [
-        "ffmpeg", "-y",
+        FFMPEG, "-y",
         "-f", "concat",
         "-safe", "0",
         "-i", list_path,
@@ -345,7 +349,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 async def _get_duration(path: str) -> float:
     """Get media file duration using ffprobe."""
     cmd = [
-        "ffprobe", "-v", "quiet",
+        FFPROBE, "-v", "quiet",
         "-print_format", "json",
         "-show_format",
         path
@@ -372,7 +376,7 @@ async def _merge_final(
     subs_escaped = subs_path.replace("\\", "/").replace(":", "\\:")
 
     cmd = [
-        "ffmpeg", "-y",
+        FFMPEG, "-y",
         "-i", video_path,
         "-i", audio_path,
         "-vf", f"ass={subs_escaped}",
@@ -402,7 +406,7 @@ async def _merge_final(
 async def _merge_without_subs(video_path: str, audio_path: str, output_path: str, duration: float):
     """Merge video + audio without subtitles as fallback."""
     cmd = [
-        "ffmpeg", "-y",
+        FFMPEG, "-y",
         "-i", video_path,
         "-i", audio_path,
         "-c:v", "libx264",

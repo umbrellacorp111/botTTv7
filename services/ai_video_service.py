@@ -6,12 +6,14 @@ import aiofiles
 import base64
 from openai import AsyncOpenAI
 from config import OPENAI_API_KEY, TEMP_DIR, CLIP_DURATION, VIDEO_DURATION, VIDEO_WIDTH, VIDEO_HEIGHT, FPS
+from services.ffmpeg_helper import get_ffmpeg_path
 from services.script_generator import generate_search_keywords
 
 logger = logging.getLogger(__name__)
 client = AsyncOpenAI(api_key=OPENAI_API_KEY)
 
 CLIPS_NEEDED = VIDEO_DURATION // CLIP_DURATION
+FFMPEG = get_ffmpeg_path()
 
 
 async def generate_ai_clips(topic: str, script: str) -> list[str]:
@@ -102,7 +104,7 @@ async def _image_to_video(image_path: str, index: int) -> str:
     )
 
     cmd = [
-        "ffmpeg", "-y",
+        FFMPEG, "-y",
         "-loop", "1",
         "-i", image_path,
         "-vf", zoom_filter,
