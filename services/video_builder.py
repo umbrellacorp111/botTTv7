@@ -12,7 +12,7 @@ from config import (
     VIDEO_DURATION, CLIP_DURATION, OPENAI_API_KEY
 )
 from openai import AsyncOpenAI
-from services.ffmpeg_helper import get_ffmpeg_path
+from services.ffmpeg_helper import get_ffmpeg_path, FONT_NAME
 
 logger = logging.getLogger(__name__)
 client = AsyncOpenAI(api_key=OPENAI_API_KEY)
@@ -317,7 +317,6 @@ def _ts(seconds: float) -> str:
 
 def _write_ass_file(segments: list[dict], path: str):
     """Write styled ASS subtitle file."""
-    # ASS style: bold white text, black outline, bottom center
     header = f"""[Script Info]
 ScriptType: v4.00+
 PlayResX: {VIDEO_WIDTH}
@@ -326,7 +325,7 @@ WrapStyle: 0
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,Arial,72,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,4,2,2,80,80,120,1
+Style: Default,{FONT_NAME},84,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,3,2,1,2,80,80,120,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -368,14 +367,14 @@ async def _merge_final(
     duration: float
 ):
     """Merge video + audio + burn subtitles into final file."""
-    # Escape path for ffmpeg ASS filter
+    font_dir_escaped = TEMP_DIR.replace("\\", "/").replace(":", "\\:")
     subs_escaped = subs_path.replace("\\", "/").replace(":", "\\:")
 
     cmd = [
         FFMPEG, "-y",
         "-i", video_path,
         "-i", audio_path,
-        "-vf", f"ass={subs_escaped}",
+        "-vf", f"ass={subs_escaped}:fontsdir={font_dir_escaped}",
         "-c:v", "libx264",
         "-c:a", "aac",
         "-b:a", "192k",

@@ -5,6 +5,7 @@ from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
 from config import BOT_TOKEN, TEMP_DIR
 from handlers import registration
+from services.ffmpeg_helper import ensure_font
 
 logging.basicConfig(
     level=logging.INFO,
@@ -15,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 async def main():
     os.makedirs(TEMP_DIR, exist_ok=True)
+    ensure_font(TEMP_DIR)
 
     bot = Bot(token=BOT_TOKEN)
     dp = Dispatcher(storage=MemoryStorage())

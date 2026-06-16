@@ -1,11 +1,15 @@
 import os
 import shutil
 import logging
+import urllib.request
 
 logger = logging.getLogger(__name__)
 
 _ffmpeg_path = None
 _ffprobe_path = None
+FONT_NAME = "DejaVu Sans"
+FONT_FILENAME = "DejaVuSans.ttf"
+FONT_URL = "https://github.com/dejavu-fonts/dejavu-fonts/raw/master/ttf/DejaVuSans.ttf"
 
 
 def get_ffmpeg_path() -> str:
@@ -29,14 +33,12 @@ def get_ffprobe_path():
     if _ffprobe_path:
         return _ffprobe_path
 
-    # 1. Check PATH
     which = shutil.which("ffprobe")
     if which:
         _ffprobe_path = which
         logger.info(f"ffprobe found in PATH: {_ffprobe_path}")
         return _ffprobe_path
 
-    # 2. Derive from imageio-ffmpeg's ffmpeg location
     try:
         from imageio_ffmpeg import get_ffmpeg_exe
         ffmpeg = get_ffmpeg_exe()
@@ -52,7 +54,6 @@ def get_ffprobe_path():
     except Exception:
         pass
 
-    # 3. Use ffprobe from imageio's bundled tools if available
     try:
         from imageio_ffmpeg import get_ffprobe_exe
         _ffprobe_path = get_ffprobe_exe()
@@ -63,3 +64,21 @@ def get_ffprobe_path():
 
     logger.warning("ffprobe not found, will use duration fallback")
     return None
+
+
+def ensure_font(font_dir: str) -> str:
+    font_path = os.path.join(font_dir, FONT_FILENAME)
+    if os.path.exists(font_path):
+        logger.info(f"Font already exists: {font_path}")
+        return font_path
+
+    os.makedirs(font_dir, exist_ok=True)
+    try:
+        logger.info(f"Downloading font from {FONT_URL}...")
+        urllib.request.urlretrieve(FONT_URL, font_path)
+        logger.info(f"Font saved: {font_path}")
+    except Exception as e:
+        logger.warning(f"Font download failed, subtitles may be invisible: {e}")
+        return None
+
+    return font_path
