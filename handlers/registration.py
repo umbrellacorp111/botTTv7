@@ -179,14 +179,14 @@ async def process_video(message: Message, state: FSMContext, data: dict, bot):
         await bot.edit_message_text("📤 Отправляю видео...", chat_id=user_id, message_id=status_msg.message_id)
 
         # Step 5: Send video
-        with open(output_path, "rb") as video_file:
-            await bot.send_video(
-                chat_id=user_id,
-                video=video_file,
-                caption=f"🎬 <b>{topic}</b>\n\n✅ Видео готово! Напиши /start для нового.",
-                parse_mode="HTML",
-                supports_streaming=True
-            )
+        from aiogram.types import FSInputFile
+        await bot.send_video(
+            chat_id=user_id,
+            video=FSInputFile(output_path),
+            caption=f"🎬 <b>{topic}</b>\n\n✅ Видео готово! Напиши /start для нового.",
+            parse_mode="HTML",
+            supports_streaming=True
+        )
 
         await bot.delete_message(chat_id=user_id, message_id=status_msg.message_id)
 

@@ -6,21 +6,18 @@ Video builder — собирает финальное видео из клипо
 import os
 import asyncio
 import logging
-import json
-import math
 import re
 from config import (
     TEMP_DIR, VIDEO_WIDTH, VIDEO_HEIGHT, FPS,
     VIDEO_DURATION, CLIP_DURATION, OPENAI_API_KEY
 )
 from openai import AsyncOpenAI
-from services.ffmpeg_helper import get_ffmpeg_path, get_ffprobe_path
+from services.ffmpeg_helper import get_ffmpeg_path
 
 logger = logging.getLogger(__name__)
 client = AsyncOpenAI(api_key=OPENAI_API_KEY)
 
 FFMPEG = get_ffmpeg_path()
-FFPROBE = get_ffprobe_path()
 
 TRANSITIONS = ["fade", "zoom_in", "zoom_out", "slide_left", "slide_right"]
 TRANSITION_DURATION = 0.4  # seconds
@@ -347,25 +344,20 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
 
 async def _get_duration(path: str) -> float:
-    """Get media file duration using ffprobe."""
-    if not FFPROBE:
-        logger.warning("ffprobe not available, using default duration")
-        return VIDEO_DURATION
+    """Get media file duration using ffmpeg (no ffprobe needed)."""
+    cmd = [FFMPEG, "-i", path, "-f", "null", "-"]
+    proc = await asyncio.create_subprocess_exec(
+        *cmd,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE
+    )
+    _, stderr = await proc.communicate()
 
-    cmd = [
-        FFPROBE, "-v", "quiet",
-        "-print_format", "json",
-        "-show_format",
-        path
-    ]
-    proc = await asyncio.create_subprocess_exec(*cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
-    stdout, _ = await proc.communicate()
-
-    try:
-        info = json.loads(stdout)
-        return float(info["format"]["duration"])
-    except Exception:
-        return VIDEO_DURATION
+    match = re.search(r"Duration: (\d+):(\d+):(\d+\.\d+)", stderr.decode(errors="ignore"))
+    if match:
+        h, m, s = match.groups()
+        return int(h) * 3600 + int(m) * 60 + float(s)
+    return VIDEO_DURATION
 
 
 async def _merge_final(
