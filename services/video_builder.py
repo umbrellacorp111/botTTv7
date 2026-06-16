@@ -250,7 +250,7 @@ async def _generate_subtitles(script: str, audio_path: str, user_id: int) -> str
             )
 
         words = transcript.words or []
-        segments = _group_words_into_segments(words, max_words=5)
+        segments = _group_words_into_segments(words, max_words=2)
 
     except Exception as e:
         logger.warning(f"Whisper failed, using equal timing: {e}")
@@ -293,7 +293,7 @@ def _fallback_segments(script: str) -> list[dict]:
     words_per_second = total_words / total_time
 
     segments = []
-    chunk_size = 5
+    chunk_size = 2
     for i in range(0, total_words, chunk_size):
         chunk = words[i:i + chunk_size]
         start = i / words_per_second
