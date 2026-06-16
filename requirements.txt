@@ -1,0 +1,12 @@
+aiogram==3.7.0
+openai==1.35.0
+requests==2.31.0
+moviepy==1.0.3
+Pillow==10.3.0
+numpy==1.26.4
+aiohttp==3.9.5
+aiofiles==23.2.1
+pydub==0.25.1
+imageio==2.34.2
+imageio-ffmpeg==0.5.1
+python-dotenv==1.0.1
